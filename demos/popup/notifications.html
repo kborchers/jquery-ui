@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>jQuery UI Popup - Notifications demo</title>
+	<link rel="stylesheet" href="../demos.css" type="text/css" />
+	<link rel="stylesheet" href="../../themes/base/jquery.ui.all.css" />
+	<script src="../../jquery-1.6.2.js"></script>
+	<script src="../../ui/jquery.ui.core.js"></script>
+	<script src="../../ui/jquery.ui.widget.js"></script>
+	<script src="../../ui/jquery.ui.position.js"></script>
+	<script src="../../ui/jquery.ui.button.js"></script>
+	<script src="../../ui/jquery.ui.menu.js"></script>
+	<script src="../../ui/jquery.ui.menubar.js"></script>
+	<script src="../../ui/jquery.ui.popup.js"></script>
+	<script>
+	$(function() {
+		function select( event, ui ) {
+			$( "<div/>" ).text( "Selected: " + ui.item.text() ).appendTo( "#log" );
+			if ( ui.item.text() == 'Quit' ) {
+				$( this ).menubar( 'destroy' );
+			}
+		}
+		$( "#notifications" ).popup({
+			trigger: $( "#notification_link" ),
+			position: {
+				of: "#notification_link"
+			}
+		});
+		$( "#bar1" ).menubar({
+			position: {
+				within: $( "#demo-frame" ).add( window ).first()
+			},
+			select: select
+		});
+	});
+	</script>
+	<style>
+		#bar1 { margin: 0 0 4em; }
+
+		#notifications {
+			width: 300px; 
+			border: 1px solid gray; 
+			border-radius: 5px;
+			box-shadow: 3px 3px 5px -1px rgba(0, 0, 0, 0.5);
+			background: lightgray; background-image: -webkit-gradient(linear, left top, left bottom, from(#eee), to(#ddd));
+			font-size: 1.3em; outline: none;
+			position: absolute;
+			z-index: 5000;
+			display: none;
+		}
+
+		#notifications div {
+			padding: 15px;
+			border-bottom: 1px solid #999;
+		}
+		#notifications div:hover {
+			background: #EEE;
+			cursor: pointer;
+		}
+ 	</style>
+</head>
+<body>
+
+<div class="demo">
+<ul id="bar1" class="menubar">
+	<li>
+		<a href="#File">File</a>
+		<ul>
+			<li><a href="#Open...">Open...</a></li>
+			<li class="ui-state-disabled">Open recent...</li>
+			<li><a href="#Save">Save</a></li>
+			<li><a href="#Save as...">Save as...</a></li>
+			<li><a href="#Close">Close</a></li>
+			<li><a href="#Quit">Quit</a></li>
+		</ul>
+	</li>
+	<li>
+		<a href="#Edit">Edit</a>
+		<ul>
+			<li><a href="#Copy">Copy</a></li>
+			<li><a href="#Cut">Cut</a></li>
+			<li class="ui-state-disabled">Paste</li>
+		</ul>
+	</li>
+	<li>
+		<a href="#View">View</a>
+		<ul>
+			<li><a href="#Fullscreen">Fullscreen</a></li>
+			<li><a href="#Fit into view">Fit into view</a></li>
+			<li>
+				<a href="#Encoding">Encoding</a>
+				<ul>
+					<li><a href="#Auto-detect">Auto-detect</a></li>
+					<li><a href="#UTF-8">UTF-8</a></li>
+					<li>
+					  <a href="#UTF-16">UTF-16</a>
+				      <ul>
+				         <li><a href="#Option 1">Option 1</a></li>
+				         <li><a href="#Option 2">Option 2</a></li>
+				         <li><a href="#Option 3">Option 3</a></li>
+				         <li><a href="#Option 4">Option 4</a></li>
+				      </ul>
+				   </li>
+				</ul>
+			</li>
+			<li><a href="#Customize...">Customize...</a></li>
+		</ul>
+	</li>
+	<li>
+		<a href="#Notifications" id="notification_link" title="Notifications"><span class="ui-icon ui-icon-comment"></span></a>
+	</li>
+</ul>
+<div id="notifications">
+	<div>You have <a href="#">3 new messages</a>.</div>
+	<div>James would like to <a href="#">chat</a> with you.</div>
+</div>
+
+<div class="ui-widget" style="margin-top:2em; font-family:Arial">
+	Log:
+	<div id="log" style="height: 100px; width: 300px; overflow: auto;" class="ui-widget-content"></div>
+</div>
+</div>
+
+<div class="demo-description">
+
+<p>TODO</p>
+
+</div><!-- End demo-description -->
+
+
+</body>
+</html>
