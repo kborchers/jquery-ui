@@ -24,7 +24,8 @@ $.widget( "ui.menu", {
 		position: {
 			my: "left top",
 			at: "right top"
-		}
+		},
+		trigger: null
 	},
 	_create: function() {
 		this.activeMenu = this.element;
@@ -47,6 +48,11 @@ $.widget( "ui.menu", {
 				}
 			}, this));
 		this._bind({
+			// Prevent focus from sticking to links inside menu after clicking
+			// them (focus should always stay on UL during navigation).
+			"mousedown .ui-menu-item > a": function( event ) {
+				event.preventDefault();
+			},
 			"click .ui-menu-item:has(a)": function( event ) {
 				event.stopImmediatePropagation();
 				var target = $( event.currentTarget );
@@ -55,6 +61,8 @@ $.widget( "ui.menu", {
 					this.focus( event, target );
 				}
 				this.select( event );
+				// Redirect focus to the menu.
+				this.element.focus();
 			},
 			"mouseover .ui-menu-item": function( event ) {
 				event.stopImmediatePropagation();
@@ -74,7 +82,7 @@ $.widget( "ui.menu", {
 			},
 			blur: function( event ) {
 				this._delay( function() {
-					if ( ! $.contains( this.element[0], document.activeElement ) ) {
+					if ( ! $.contains( this.element[0], this.document[0].activeElement ) ) {
 						this.collapseAll( event );
 					}
 				}, 0);
@@ -196,17 +204,31 @@ $.widget( "ui.menu", {
 			}
 		});
 
-		this._bind( document, {
+		this._bind( this.document, {
 			click: function( event ) {
 				if ( !$( event.target ).closest( ".ui-menu" ).length ) {
 					this.collapseAll( event );
 				}
 			}
 		});
+
+		if ( this.options.trigger ) {
+			this.element.popup({
+				trigger: this.options.trigger,
+				managed: true,
+				focusPopup: $.proxy( function( event, ui ) {
+					this.focus( event, this.element.children( ".ui-menu-item" ).first() );
+					this.element.focus( 1 );
+				}, this)
+			});
+		}
 	},
 
 	_destroy: function() {
 		//destroy (sub)menus
+		if ( this.options.trigger ) {
+			this.element.popup( "destroy" );
+		}
 		this.element
 			.removeAttr( "aria-activedescendant" )
 			.find( ".ui-menu" )
@@ -508,6 +530,10 @@ $.widget( "ui.menu", {
 			item: this.active
 		};
 		this.collapseAll( event, true );
+		if ( this.options.trigger ) {
+			$( this.options.trigger ).focus( 1 );
+			this.element.popup( "close" );
+		}
 		this._trigger( "select", event, ui );
 	}
 });
