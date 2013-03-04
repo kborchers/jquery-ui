@@ -81,7 +81,7 @@ $.widget( "ui.draggable", $.ui.interaction, {
 		return !!( handle && !exclude );
 	},
 
-	_start: function( event, pointerPosition ) {
+	_start: function( event, delta ) {
 		var offset, startCssLeft, startCssTop, startPosition, startOffset;
 
 		// Reset
@@ -89,7 +89,7 @@ $.widget( "ui.draggable", $.ui.interaction, {
 
 		// The actual dragging element, should always be a jQuery object
 		this.dragEl = ( this.options.helper === true || typeof this.options.helper === "function" ) ?
-			this._createHelper( pointerPosition ) :
+			this._createHelper( event ) :
 			this.element;
 
 		// _createHelper() ensures that helpers are in the correct position
@@ -111,7 +111,6 @@ $.widget( "ui.draggable", $.ui.interaction, {
 		// Cache starting positions
 		this.originalPosition = this.startPosition = this._getPosition();
 		this.originalOffset = this.startOffset = this.dragEl.offset();
-		this.originalPointer = pointerPosition;
 
 		// If not already cached within _createHelper
 		if ( !this.dragDimensions ) {
@@ -134,11 +133,11 @@ $.widget( "ui.draggable", $.ui.interaction, {
 				this.window.width() : this.scrollParent.width()
 		};
 
-		this._preparePosition( pointerPosition );
+		this._preparePosition( delta );
 
 		// If user cancels beforeStart, don't allow dragging
 		if ( this._trigger( "beforeStart", event,
-				this._originalHash( pointerPosition ) ) === false ) {
+				this._originalHash() ) === false ) {
 
 			// domPosition needs to be undone even if beforeStart is stopped
 			// Otherwise this.dragEl will remain in the element appendTo is set to
@@ -158,7 +157,7 @@ $.widget( "ui.draggable", $.ui.interaction, {
 
 		// If user cancels on start, don't allow dragging
 		if ( this._trigger( "start", event,
-				this._fullHash( pointerPosition ) ) === false ) {
+				this._fullHash() ) === false ) {
 				// domPosition needs to be undone even if start is stopped
 				// Otherwise this.dragEl will remain in the element appendTo is set to
 
@@ -193,25 +192,25 @@ $.widget( "ui.draggable", $.ui.interaction, {
 		this.domPosition = null;
 	},
 
-	_move: function( event, pointerPosition ) {
-		this._preparePosition( pointerPosition );
+	_move: function( event, delta ) {
+		this._preparePosition( delta );
 
 		// If user cancels drag, don't move the element
-		if ( this._trigger( "drag", event, this._fullHash( pointerPosition ) ) === false ) {
+		if ( this._trigger( "drag", event, this._fullHash() ) === false ) {
 			return false;
 		}
 
 		this._setCss();
 
 		// Scroll the scrollParent, if needed
-		this._handleScrolling( pointerPosition );
+		this._handleScrolling();
 	},
 
-	_stop: function( event, pointerPosition ) {
-		this._preparePosition( pointerPosition );
+	_stop: function( event, delta ) {
+		this._preparePosition( delta );
 
 		// If user cancels stop, leave helper there
-		if ( this._trigger( "stop", event, this._fullHash( pointerPosition ) ) !== false ) {
+		if ( this._trigger( "stop", event, this._fullHash() ) !== false ) {
 			if ( this.options.helper ) {
 				delete this.element.data( "ui-draggable" ).helper;
 				this.dragEl.remove();
@@ -224,11 +223,13 @@ $.widget( "ui.draggable", $.ui.interaction, {
 
 	/** internal **/
 
-	_createHelper: function( pointerPosition ) {
+	_createHelper: function( event ) {
 		var helper,
 			offset = this.element.offset(),
-			xPos = (pointerPosition.x - offset.left) / this.element.outerWidth(),
-			yPos = (pointerPosition.y - offset.top) / this.element.outerHeight();
+			x = event.x || event.originalEvent.x,
+			y = event.y || event.originalEvent.y,
+			xPos = x ? (x - offset.left) / this.element.outerWidth() : offset.left / this.element.outerWidth(),
+			yPos = y ? (y - offset.top) / this.element.outerHeight() : offset.top / this.element.outerHeight();
 
 		// clone
 		if ( this.options.helper === true ) {
@@ -255,8 +256,8 @@ $.widget( "ui.draggable", $.ui.interaction, {
 			// Helper must be absolute to function properly
 			.css( "position", "absolute" )
 			.offset({
-				left: pointerPosition.x - this.dragDimensions.width * xPos,
-				top: pointerPosition.y - this.dragDimensions.height * yPos
+				left: x ? x - this.dragDimensions.width * xPos : this.dragDimensions.width * xPos,
+				top: y ? y - this.dragDimensions.height * yPos : this.dragDimensions.height * yPos
 			});
 	},
 
@@ -303,7 +304,7 @@ $.widget( "ui.draggable", $.ui.interaction, {
 		};
 	},
 
-	_handleScrolling: function( pointerPosition ) {
+	_handleScrolling: function() {
 		var newScrollTop, newScrollLeft,
 			scrollTop = this.scrollParent.scrollTop(),
 			scrollLeft = this.scrollParent.scrollLeft(),
@@ -316,10 +317,10 @@ $.widget( "ui.draggable", $.ui.interaction, {
 			overflowTop = this.overflowOffset ?
 				this.overflowOffset.top :
 				scrollTop,
-			xRight = this.overflow.width + overflowLeft - pointerPosition.x,
-			xLeft = pointerPosition.x- overflowLeft,
-			yBottom = this.overflow.height + overflowTop - pointerPosition.y,
-			yTop = pointerPosition.y - overflowTop,
+			xRight = this.overflow.width + overflowLeft - this.dragDimensions.width / 2,
+			xLeft = this.dragDimensions.width / 2 - overflowLeft,
+			yBottom = this.overflow.height + overflowTop - this.dragDimensions.height / 2,
+			yTop = this.dragDimensions.height / 2 - overflowTop,
 
 			// accounts for change in scrollbar to modify "original" pointer so calc
 			change;
@@ -364,11 +365,9 @@ $.widget( "ui.draggable", $.ui.interaction, {
 
 	// Uses event to determine new position of draggable, before any override from callbacks
 	// TODO: handle absolute element inside relative parent like a relative element
-	_preparePosition: function( pointerPosition ) {
-		var leftDiff = pointerPosition.x - this.originalPointer.x,
-			topDiff = pointerPosition.y - this.originalPointer.y,
-			newLeft = leftDiff + this.startPosition.left,
-			newTop = topDiff + this.startPosition.top;
+	_preparePosition: function( delta ) {
+		var newLeft = this.startPosition.left + delta.x,
+			newTop = this.startPosition.top + delta.y;
 
 		// Save off new values for .css() in various callbacks using this function
 		this.position = {
@@ -383,8 +382,8 @@ $.widget( "ui.draggable", $.ui.interaction, {
 		};
 
 		// Refresh offset cache with new positions
-		this.offset.left = this.startOffset.left + leftDiff;
-		this.offset.top = this.startOffset.top + topDiff;
+		this.offset.left = this.startOffset.left + delta.x;
+		this.offset.top = this.startOffset.top + delta.y;
 	},
 
 	// Places draggable where event, or user via event/callback, indicates
@@ -412,11 +411,14 @@ $.widget( "ui.draggable", $.ui.interaction, {
 		});
 	},
 
-	_originalHash: function( pointerPosition ) {
+	_originalHash: function() {
 		var ret = {
 			position: this.position,
 			offset: copy( this.offset ),
-			pointer: copy( pointerPosition )
+			delta: {
+				x: 0,
+				y: 0
+			}
 		};
 
 		if ( this.options.helper ) {
@@ -426,11 +428,11 @@ $.widget( "ui.draggable", $.ui.interaction, {
 		return ret;
 	},
 
-	_fullHash: function( pointerPosition ) {
-		return $.extend( this._originalHash( pointerPosition ), {
+	_fullHash: function() {
+		return $.extend( this._originalHash(), {
 			originalPosition: copy( this.originalPosition ),
 			originalOffset: copy( this.originalOffset ),
-			originalPointer: copy( this.originalPointer )
+			originalDelta: copy( this.originalDelta )
 		});
 	},
 

@@ -12,7 +12,7 @@
  */
 (function( $, undefined ) {
 
-var interaction, touchHook, pointerHook;
+var interaction, mouseHook, touchHook, pointerHook;
 
 $.widget( "ui.interaction", {
 	version: "@VERSION",
@@ -44,12 +44,12 @@ $.widget( "ui.interaction", {
 	// a pass through to _interactionStart() which tracks the hook that was used
 	_startProxy: function( hook ) {
 		var that = this;
-		return function( event, target, pointerPosition ) {
-			return that._interactionStart( event, target, pointerPosition, hook );
+		return function( event, target ) {
+			return that._interactionStart( event, target, hook );
 		};
 	},
 
-	_interactionStart: function( event, target, pointerPosition, hook ) {
+	_interactionStart: function( event, target, hook ) {
 		var started;
 
 		// only one interaction can happen at a time
@@ -63,7 +63,7 @@ $.widget( "ui.interaction", {
 		}
 
 		// check if the widget wants the event to start an interaction
-		started = ( this._start( event, pointerPosition ) !== false );
+		started = ( this._start( event, interaction.startPosition ) !== false );
 		if ( started ) {
 			interaction.started = true;
 			interaction.hooks[ hook ].handle( this,
@@ -74,12 +74,12 @@ $.widget( "ui.interaction", {
 		return started;
 	},
 
-	_interactionMove: function( event, pointerPosition ) {
-		this._move( event, pointerPosition );
+	_interactionMove: function( event, delta ) {
+		this._move( event, delta );
 	},
 
-	_interactionStop: function( event, pointerPosition ) {
-		this._stop( event, pointerPosition );
+	_interactionStop: function( event, delta ) {
+		this._stop( event, delta );
 		interaction.started = false;
 	}
 });
@@ -87,21 +87,27 @@ $.widget( "ui.interaction", {
 interaction = $.ui.interaction;
 $.extend( interaction, {
 	started: false,
-	hooks: {}
+	hooks: {},
+	startPosition: {
+		x: 0,
+		y: 0
+	}
 });
 
-interaction.hooks.mouse = {
+mouseHook = interaction.hooks.mouse = {
 	setup: function( widget, start ) {
 		widget._on( widget.widget(), {
 			"mousedown": function( event ) {
 				// only react to the primary button
 				if ( event.which === 1 ) {
-					var started = start( event, event.target, {
-						x: event.pageX,
-						y: event.pageY
-					});
+					var started = start( event, interaction.startPosition );
 
 					if ( started ) {
+						// store first pointerPosition
+						interaction.startPosition = {
+							x: event.pageX || event.originalEvent.pageX,
+							y: event.pageY || event.originalEvent.pageY
+						};
 						// prevent selection
 						event.preventDefault();
 					}
@@ -114,16 +120,21 @@ interaction.hooks.mouse = {
 		function mousemove( event ) {
 			event.preventDefault();
 			move( event, {
-				x: event.pageX,
-				y: event.pageY
+				x: event.pageX - interaction.startPosition.x,
+				y: event.pageY - interaction.startPosition.y
 			});
 		}
 
 		function mouseup( event ) {
 			stop( event, {
-				x: event.pageX,
-				y: event.pageY
+				x: event.pageX - interaction.startPosition.x,
+				y: event.pageY - interaction.startPosition.y
 			});
+			// Reset pointerPosition
+			interaction.startPosition = {
+				x: 0,
+				y: 0
+			};
 			widget.document
 				.unbind( "mousemove", mousemove )
 				.unbind( "mouseup", mouseup );
