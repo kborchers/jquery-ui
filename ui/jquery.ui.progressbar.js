@@ -116,7 +116,7 @@ $.widget( "ui.progressbar", {
 		this.valueDiv
 			.toggle( this.indeterminate || value > this.min )
 			.toggleClass( "ui-corner-right", value === this.options.max )
-			.width( percentage.toFixed(0) + "%" );
+			.outerWidth( percentage.toFixed(0) + "%" );
 
 		this.element.toggleClass( "ui-progressbar-indeterminate", this.indeterminate );
 
