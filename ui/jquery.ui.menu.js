@@ -498,7 +498,7 @@ $.widget( "ui.menu", {
 				.attr( "aria-hidden", "true" )
 				.attr( "aria-expanded", "false" )
 			.end()
-			.find( "a.ui-state-active" )
+			.find( "a.ui-state-active" ).not( ".ui-state-focus" )
 				.removeClass( "ui-state-active" );
 	},
 
